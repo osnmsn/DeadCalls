@@ -1,0 +1,12 @@
+
+{
+  "commment": "keysbind.json",
+  "move_down": ["s", "down"],
+  "move_left": ["a", "left"],
+  "move_right": ["d", "right"],
+  "jump": ["space", "w", "up"],
+  "dash": ["lshift", "rshift", "k"],
+  "attack": ["j"],
+  "quit": ["escape"],
+  "console":["/"]
+}
