@@ -101,8 +101,8 @@ end)
 
 console.register("god", function(args)
     local player = console.deps.player
-    player.maxHp = 999999
-    player.hp = 999999
+    player.maxHp = 2^31
+    player.hp = 2^31
     console.print("上帝模式已启用")
 end)
 

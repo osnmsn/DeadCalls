@@ -1,0 +1,39 @@
+{
+  "rooms": [
+    {
+      "id": "campfire_01",
+      "name": "地面篝火",
+      "platforms": [
+        {"x": 0, "y": 550, "w": 1600, "h": 50},
+        {"x": -10, "y": 0, "w": 10, "h": 600},
+        {"x": 1600, "y": 0, "w": 10, "h": 600}
+      ],
+      "enemies": [],
+      "items": [
+        {"type": "campfire", "x": 800, "y": 520, "healAmount": 30, "used": false}
+      ],
+      "doors": [
+        {"x": 20, "y": 500, "w": 80, "h": 50, "direction": "left", "locked": false},
+        {"x": 1520, "y": 500, "w": 80, "h": 50, "direction": "right", "locked": false}
+      ]
+    },
+    {
+      "id": "campfire_02",
+      "name": "平台篝火",
+      "platforms": [
+        {"x": 0, "y": 550, "w": 1600, "h": 50},
+        {"x": 650, "y": 400, "w": 300, "h": 20},
+        {"x": -10, "y": 0, "w": 10, "h": 600},
+        {"x": 1600, "y": 0, "w": 10, "h": 600}
+      ],
+      "enemies": [],
+      "items": [
+        {"type": "campfire", "x": 800, "y": 370, "healAmount": 30, "used": false}
+      ],
+      "doors": [
+        {"x": 20, "y": 500, "w": 80, "h": 50, "direction": "left", "locked": false},
+        {"x": 1520, "y": 500, "w": 80, "h": 50, "direction": "right", "locked": false}
+      ]
+    }
+  ]
+}

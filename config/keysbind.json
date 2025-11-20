@@ -8,5 +8,6 @@
   "dash": ["lshift", "rshift", "k"],
   "attack": ["j"],
   "quit": ["escape"],
-  "console":["/"]
+  "console":["/"],
+  "interact": ["f"]
 }
