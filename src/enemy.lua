@@ -4,31 +4,34 @@
 local enemy = {}
 
 local world
-local platforms
+local gameWorld  -- 改为存储 gameWorld
 local player
 local enemies = {}
-local platformGraph = {} -- 平台图节点
-local graphBuilt = false
+local platformGraph = {}
+local currentRoomId = nil  -- 追踪当前房间
 
 -- 敌人类型定义
 local enemyTypes = {
     chaser = {
-        speed = 200,--速度
-        jumpForce = 600,--跳跃高度
-        gravity = 1500,--重力
-        hp = 30,--血量
-        damage = 10,--伤害
-        detectionRange = 400,--索敌距离
-        attackRange = 50,--攻击范围
-        color = {1, 0.3, 0.3},--颜色
+        speed = 200,
+        jumpForce = 600,
+        gravity = 1500,
+        hp = 30,
+        damage = 10,
+        detectionRange = 400,
+        attackRange = 200,
+        color = {1, 0.3, 0.3},
     }
 }
 
-function enemy.init(w, p, pl)
+-- 接收 gameWorld 而不是 platforms
+function enemy.init(w, gw, pl)
     world = w
-    platforms = p
+    gameWorld = gw  -- 存储 gameWorld 引用
     player = pl
     enemies = {}
+    platformGraph = {}
+    currentRoomId = nil
 end
 
 function enemy.spawn(x, y, type)
@@ -43,7 +46,6 @@ function enemy.spawn(x, y, type)
         vx = 0,
         vy = 0,
         
-        -- 从模板复制属性
         speed = template.speed,
         jumpForce = template.jumpForce,
         gravity = template.gravity,
@@ -54,19 +56,16 @@ function enemy.spawn(x, y, type)
         attackRange = template.attackRange,
         color = template.color,
         
-        -- AI状态
         type = type,
-        state = "idle", -- idle, chase, attack
+        state = "idle",
         onGround = false,
         facing = 1,
         
-        -- 寻路相关
         path = {},
         pathIndex = 1,
         pathUpdateTimer = 0,
-        pathUpdateInterval = 0.5, -- 每0.5秒更新一次路径
+        pathUpdateInterval = 0.5,
         
-        -- 动作控制
         wantJump = false,
         wantDash = false,
     }
@@ -77,11 +76,13 @@ function enemy.spawn(x, y, type)
     return e
 end
 
-function enemy.updateAll(dt)
-    -- 构建平台图（只需要一次）
-    if not graphBuilt then
+-- 添加 roomId 参数
+function enemy.updateAll(dt, roomId)
+    -- 检查房间是否改变，改变则重建平台图
+    if currentRoomId ~= roomId then
+        currentRoomId = roomId
         buildPlatformGraph()
-        graphBuilt = true
+        print("重建敌人平台图 - 房间ID: " .. tostring(roomId))
     end
     
     for i = #enemies, 1, -1 do
@@ -97,13 +98,21 @@ function enemy.updateAll(dt)
 end
 
 function updateEnemy(e, dt)
-    -- 计算到玩家的距离
     local dx = player.x - e.x
     local dy = player.y - e.y
     local dist = math.sqrt(dx*dx + dy*dy)
     
-
-    -- 更新寻路
+    if dist < e.attackRange then
+        e.state = "attack"
+        if not e.attackCooldown or e.attackCooldown <= 0 then
+            e.attackCooldown = 1.0
+        end
+    elseif dist < e.detectionRange then
+        e.state = "chase"
+    else
+        e.state = "idle"
+    end
+    
     if e.state == "chase" then
         e.pathUpdateTimer = e.pathUpdateTimer + dt
         if e.pathUpdateTimer >= e.pathUpdateInterval then
@@ -113,11 +122,9 @@ function updateEnemy(e, dt)
         end
     end
     
-    -- AI行为
     if e.state == "chase" and #e.path > 0 then
         followPath(e, dt)
     else
-        -- 空闲时应用摩擦力
         local friction = 800 * dt
         if math.abs(e.vx) < friction then
             e.vx = 0
@@ -126,16 +133,13 @@ function updateEnemy(e, dt)
         end
     end
     
-    -- 重力
     e.vy = e.vy + e.gravity * dt
     
-    -- 执行跳跃
     if e.wantJump and e.onGround then
         e.vy = -e.jumpForce
         e.wantJump = false
     end
     
-    -- 移动和碰撞
     local goalX = e.x + e.vx * dt
     local goalY = e.y + e.vy * dt
     
@@ -143,7 +147,6 @@ function updateEnemy(e, dt)
     e.x = actualX
     e.y = actualY
     
-    -- 检查地面
     e.onGround = false
     for i = 1, len do
         local col = cols[i]
@@ -159,20 +162,7 @@ function updateEnemy(e, dt)
             end
         end
     end
-    if dist < e.attackRange then
-        e.state = "attack"
-        -- 攻击冷却
-        if not e.attackCooldown or e.attackCooldown <= 0 then
-            -- 伤害已在 main.lua 的碰撞检测中处理
-            e.attackCooldown = 1.0 -- 1秒攻击一次
-        end
-    elseif dist < e.detectionRange then
-        e.state = "chase"
-    else
-        e.state = "idle"
-    end
     
-    -- 冷却倒计时
     if e.attackCooldown and e.attackCooldown > 0 then
         e.attackCooldown = e.attackCooldown - dt
     end
@@ -185,7 +175,6 @@ function followPath(e, dt)
     local dx = target.x - (e.x + e.w/2)
     local dy = target.y - (e.y + e.h)
     
-    -- 到达当前节点，移动到下一个
     if math.abs(dx) < 20 and math.abs(dy) < 20 then
         e.pathIndex = e.pathIndex + 1
         if e.pathIndex > #e.path then return end
@@ -194,7 +183,6 @@ function followPath(e, dt)
         dy = target.y - (e.y + e.h)
     end
     
-    -- 水平移动
     if math.abs(dx) > 10 then
         if dx > 0 then
             e.vx = e.speed
@@ -207,7 +195,6 @@ function followPath(e, dt)
         e.vx = 0
     end
     
-    -- 检查是否需要跳跃
     if target.action == "jump" and e.onGround then
         e.wantJump = true
     end
@@ -215,23 +202,29 @@ end
 
 function enemyFilter(item, other)
     if other == player then
-        return 'cross' -- 可以穿过玩家（但可以在main中添加伤害判定）
+        return 'cross'
     end
     return 'slide'
 end
 
--- Platform Graph 构建
-
+-- 使用 gameWorld.platforms
 function buildPlatformGraph()
     platformGraph = {}
     
+    -- 检查 gameWorld 是否存在
+    if not gameWorld or not gameWorld.platforms then 
+        print("警告: gameWorld 或 platforms 不存在")
+        return 
+    end
+    
+    print(string.format("构建平台图 - 平台数量: %d", #gameWorld.platforms))
+    
     -- 为每个平台创建节点
-    for i, platform in ipairs(platforms) do
-        -- 在平台上方创建多个节点
+    for i, platform in ipairs(gameWorld.platforms) do
         local nodeCount = math.max(2, math.floor(platform.w / 60))
         for j = 1, nodeCount do
             local nodeX = platform.x + (platform.w / (nodeCount + 1)) * j
-            local nodeY = platform.y - 5 -- 稍微在平台上方
+            local nodeY = platform.y - 5
             
             local node = {
                 id = #platformGraph + 1,
@@ -252,28 +245,25 @@ function buildPlatformGraph()
                 local dy = nodeB.y - nodeA.y
                 local dist = math.sqrt(dx*dx + dy*dy)
                 
-                -- 同一平台上的节点 - 走路
                 if nodeA.platform == nodeB.platform then
                     table.insert(nodeA.edges, {
                         to = nodeB.id,
-                        cost = dist / 200, -- 行走成本较低
+                        cost = dist / 200,
                         action = "walk"
                     })
                 else
-                    -- 跳跃可达性检查
                     if canJump(nodeA, nodeB) then
                         table.insert(nodeA.edges, {
                             to = nodeB.id,
-                            cost = dist / 100, -- 跳跃成本较高
+                            cost = dist / 100,
                             action = "jump"
                         })
                     end
                     
-                    -- 掉落可达性
                     if canFall(nodeA, nodeB) then
                         table.insert(nodeA.edges, {
                             to = nodeB.id,
-                            cost = dist / 250, -- 掉落成本低
+                            cost = dist / 250,
                             action = "fall"
                         })
                     end
@@ -281,49 +271,40 @@ function buildPlatformGraph()
             end
         end
     end
+    
+    print(string.format("平台图构建完成 - 节点数: %d", #platformGraph))
 end
 
 function canJump(from, to)
-    -- 简化的跳跃检查
     local dx = math.abs(to.x - from.x)
     local dy = to.y - from.y
     
-    -- 只能向上或平行跳，不能向下跳太多
     if dy > 50 then return false end
-    
-    -- 水平距离不能太远
     if dx > 200 then return false end
-    
-    -- 高度差不能太大
     if dy < -250 then return false end
     
     return true
 end
 
 function canFall(from, to)
-    -- 只能向下落
     local dy = to.y - from.y
     if dy <= 0 then return false end
     
-    -- 水平距离不能太远
     local dx = math.abs(to.x - from.x)
     if dx > 100 then return false end
     
     return true
 end
 
--- ========== A* 寻路算法 ==========
-
+-- A* 寻路算法
 function findPath(from, to)
     if #platformGraph == 0 then return {} end
     
-    -- 找到起点和终点最近的节点
     local startNode = findNearestNode(from.x + from.w/2, from.y + from.h)
     local goalNode = findNearestNode(to.x + to.w/2, to.y + to.h)
     
     if not startNode or not goalNode then return {} end
     
-    -- A* 算法
     local openSet = {startNode}
     local cameFrom = {}
     local gScore = {}
@@ -338,7 +319,6 @@ function findPath(from, to)
     fScore[startNode.id] = heuristic(startNode, goalNode)
     
     while #openSet > 0 do
-        -- 找到fScore最小的节点
         local current = openSet[1]
         local currentIdx = 1
         for i, node in ipairs(openSet) do
@@ -354,7 +334,6 @@ function findPath(from, to)
         
         table.remove(openSet, currentIdx)
         
-        -- 检查所有邻居
         for _, edge in ipairs(current.edges) do
             local neighbor = platformGraph[edge.to]
             local tentativeGScore = gScore[current.id] + edge.cost
@@ -364,7 +343,6 @@ function findPath(from, to)
                 gScore[neighbor.id] = tentativeGScore
                 fScore[neighbor.id] = gScore[neighbor.id] + heuristic(neighbor, goalNode)
                 
-                -- 如果不在openSet中，添加
                 local inOpenSet = false
                 for _, n in ipairs(openSet) do
                     if n.id == neighbor.id then
@@ -379,7 +357,7 @@ function findPath(from, to)
         end
     end
     
-    return {} -- 没找到路径
+    return {}
 end
 
 function findNearestNode(x, y)
@@ -418,7 +396,18 @@ function reconstructPath(cameFrom, current)
     return path
 end
 
--- ========== 对外接口 ==========
+-- 清空所有敌人
+function enemy.clearAll()
+    for i = #enemies, 1, -1 do
+        if world then
+            pcall(function() world:remove(enemies[i]) end)
+        end
+    end
+    enemies = {}
+    platformGraph = {}
+    currentRoomId = nil
+    print("清空所有敌人")
+end
 
 function enemy.damage(e, dmg)
     e.hp = e.hp - dmg
@@ -430,16 +419,13 @@ end
 
 function enemy.drawAll()
     for _, e in ipairs(enemies) do
-        -- 绘制敌人
         love.graphics.setColor(e.color)
         love.graphics.rectangle('fill', e.x, e.y, e.w, e.h)
         
-        -- 眼睛
         love.graphics.setColor(1, 1, 1)
         local eyeX = e.x + e.w/2 + e.facing * 6
         love.graphics.circle('fill', eyeX, e.y + 12, 3)
         
-        -- 生命条
         love.graphics.setColor(1, 0, 0)
         love.graphics.rectangle('fill', e.x, e.y - 8, e.w, 3)
         love.graphics.setColor(0, 1, 0)
@@ -456,14 +442,6 @@ function enemy.drawAll()
             end
         end
     end
-    
-    -- 绘制平台图节点（调试）
-    --[[
-    love.graphics.setColor(0, 1, 1, 0.3)
-    for _, node in ipairs(platformGraph) do
-        love.graphics.circle('fill', node.x, node.y, 3)
-    end
-    ]]
 end
 
 function math.sign(x)
