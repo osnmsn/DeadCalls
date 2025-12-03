@@ -1,5 +1,5 @@
 -- main.lua
--- CN2012 ZY
+-- CN120712 ZY
 local bump = require 'bump'
 local anim8 = require 'anim8'
 local Camera = require 'camera'
@@ -724,3 +724,4 @@ function love.textinput(t)
     end
 
 end
+
