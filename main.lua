@@ -1,5 +1,5 @@
 -- main.lua
--- CN120712 3water
+-- 120712 3water
 local bump = require 'bump'
 local anim8 = require 'anim8'
 local Camera = require 'camera'
@@ -724,5 +724,6 @@ function love.textinput(t)
     end
 
 end
+
 
 
