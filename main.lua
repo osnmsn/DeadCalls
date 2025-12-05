@@ -1,5 +1,5 @@
 -- main.lua
--- 120712 ZY
+-- 120712 3Water
 --hush, and watch my ace
 local bump = require 'bump'
 local anim8 = require 'anim8'
