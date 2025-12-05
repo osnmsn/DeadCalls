@@ -1,7 +1,7 @@
 -- src/boons.lua
 local Boons = {}
 local Dungeon = require('src.dungeon')
-
+local enemy = require('src.enemy')
 --准备做38张正逆位塔罗牌祝福，世界、命运之轮、恶魔专门拿出来做成特殊祝福
 --恶魔——高风险高回报 ps：badend
 --世界——与上帝联手 ps：normalend

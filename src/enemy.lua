@@ -148,7 +148,7 @@ function updateEnemy(e, dt)
             e.stuckTimer = e.stuckTimer + dt
             if e.stuckTimer > 0.5 then
                 e.wantJump = true -- 尝试跳一下解围
-                e.stuckTimer = 0
+                e.stuckTimer = 0--其实根本不用跳，留我一人彳亍便好
             end
         else
             e.stuckTimer = 0
@@ -491,7 +491,7 @@ function enemy.drawAll()
             for _, p in ipairs(e.path) do
                 love.graphics.line(lastX, lastY, p.x, p.y)
                 love.graphics.circle('fill', p.x, p.y, 3)
-                lastX, lastY = p.x, p.y
+               lastX, lastY = p.x, p.y
             end
         end
     end
@@ -517,4 +517,13 @@ function enemy.damage(e, val)
     e.hp = e.hp - val
 end
 
-return enemy
+function enemy.getAll()
+    return enemies
+end
+
+-- 获取导航图接口
+function enemy.getGraph()
+    return platformGraph
+end
+
+return enemy--25年12月5号被表白了，好开心纪念一下
