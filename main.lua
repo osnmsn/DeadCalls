@@ -1,5 +1,6 @@
 -- main.lua
--- CN120712 ZY
+-- 120712 ZY
+--hush, and watch my ace
 local bump = require 'bump'
 local anim8 = require 'anim8'
 local Camera = require 'camera'
@@ -57,7 +58,7 @@ end
 
 function love.load()
     -- 设置窗口
-    love.window.setTitle("Dead Calls")
+    love.window.setTitle("Dead Calls 《死亡电话》")
     love.graphics.setDefaultFilter('nearest', 'nearest')
     
     -- 初始化碰撞世界
